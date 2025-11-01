@@ -1,0 +1,37 @@
+:root {
+  --bg: #0b0f14;
+  --bg-2: #0f1520;
+  --fg: #b9d7ff;
+  --accent-1: #00eaff;
+  --accent-2: #ff3fd7;
+  --accent-3: #9cff00;
+  --warn: #ffae00;
+  --danger: #ff3b3b;
+}
+
+* { box-sizing: border-box; }
+html, body, #app { height: 100%; margin: 0; background: var(--bg); color: var(--fg); font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+
+#app { display: grid; grid-template-columns: 1fr 1fr; gap: 0; }
+
+#left-pane { background: linear-gradient(180deg, var(--bg) 0%, var(--bg-2) 100%); border-right: 1px solid #152030; padding: 8px; }
+#right-pane { display: grid; grid-template-rows: auto 1fr; max-height: 100vh; }
+
+#terminal { height: 100%; border: 1px solid #1c2a40; box-shadow: inset 0 0 20px rgba(0, 234, 255, 0.06); }
+
+#hud { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 8px; border-bottom: 1px solid #152030; background: #0d1220aa; backdrop-filter: blur(2px); }
+.meter { display: contents; }
+.meter span { opacity: 0.8; font-size: 12px; align-self: center; }
+.meter .bar { height: 8px; border: 1px solid #21324a; background: #0a1320; box-shadow: inset 0 0 8px rgba(0,0,0,0.6); position: relative; overflow: hidden; }
+.meter .bar::after { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 30%; background: linear-gradient(90deg, var(--accent-1), var(--accent-2)); box-shadow: 0 0 10px var(--accent-1); transition: width 120ms linear; }
+.meter.heat .bar::after { background: linear-gradient(90deg, var(--warn), var(--danger)); box-shadow: 0 0 10px var(--danger); }
+.meter.trace .bar::after { background: linear-gradient(90deg, #84ff00, #ffff00); box-shadow: 0 0 10px #baff00; }
+
+#credits { grid-column: span 3; text-align: right; opacity: 0.9; }
+
+#map-panel { padding: 8px; overflow: auto; }
+#map { margin: 0; line-height: 1.2; color: #c7e6ff; text-shadow: 0 0 6px rgba(0,234,255,0.25); }
+
+#toasts { position: fixed; right: 12px; top: 12px; display: flex; flex-direction: column; gap: 8px; }
+.toast { background: #0f1a2aa8; border: 1px solid #21324a; padding: 8px 10px; color: var(--fg); box-shadow: 0 0 12px rgba(0,234,255,0.1); }
+

@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Rogue Terminal: Cloudrunner</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div id="app">
+      <div id="left-pane">
+        <div id="terminal"></div>
+      </div>
+      <div id="right-pane">
+        <div id="hud">
+          <div class="meter"><span>CPU</span><div class="bar" id="cpu-bar"></div></div>
+          <div class="meter"><span>MEM</span><div class="bar" id="mem-bar"></div></div>
+          <div class="meter"><span>NET</span><div class="bar" id="net-bar"></div></div>
+          <div class="meter"><span>POWER</span><div class="bar" id="power-bar"></div></div>
+          <div class="meter heat"><span>HEAT</span><div class="bar" id="heat-bar"></div></div>
+          <div class="meter trace"><span>TRACE</span><div class="bar" id="trace-bar"></div></div>
+          <div id="credits">Credits: <span id="credits-val">0</span></div>
+        </div>
+        <div id="map-panel">
+          <pre id="map"></pre>
+        </div>
+        <div id="toasts"></div>
+      </div>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+  </html>
+
