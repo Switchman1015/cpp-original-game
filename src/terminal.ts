@@ -6,6 +6,7 @@ import { Commands, scheduleCast } from "./game";
 export type TermApi = {
   write: (s: string) => void;
   focus: () => void;
+  run: (line: string) => void;
 };
 
 export function initTerminal(el: HTMLElement, state: GameState): TermApi {
@@ -75,11 +76,12 @@ export function initTerminal(el: HTMLElement, state: GameState): TermApi {
         } else {
           scheduleCast({ state, args, raw: rawSeg, write }, spec, { bg });
         }
+        state.onCommand?.(cmd, args, rawSeg);
       } catch (e:any) { write(String(e?.message||e)); }
     }
   }
 
-  return { write, focus: () => term.focus() };
+  return { write, focus: () => term.focus(), run: (line: string) => { handleLine(line); prompt(); } };
 }
 
 function splitArgs(s: string): string[] {

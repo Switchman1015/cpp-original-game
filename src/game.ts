@@ -37,6 +37,9 @@ export type GameState = {
   onToast: (msg: string) => void;
   jobs: Record<number, { id: number; line: string; endsAt: number; startAt: number; bg: boolean; canceled?: boolean }>;
   nextJobId: number;
+  onCommand?: (cmd: string, args: string[], raw: string) => void;
+  onWinEvent?: () => void;
+  openTutorial?: () => void;
 };
 
 export function createRng(seed: number) {
@@ -148,6 +151,10 @@ export function registerCoreCommands(write: (s:string)=>void) {
   add({ id: "map", castMs: 0, gcdMs: 0, cdMs: 0, run: ({state, write}) => {
     write(drawAsciiMap(state));
   }});
+  add({ id: "tutorial", castMs: 0, gcdMs: 0, cdMs: 0, run: ({state, write}) => {
+    state.openTutorial?.();
+    write("チュートリアルを開きます");
+  }});
   add({ id: "connect", castMs: 0, gcdMs: 0, cdMs: 0, run: ({state, write, args}) => {
     const id = args[0];
     if (!id || !state.map.nodes[id]) { write("ノードIDを指定してください（例: connect node-b）"); return; }
@@ -236,6 +243,7 @@ export function onWin(state: GameState, write: (s:string)=>void) {
   state.player.credits += gain;
   write(`勝利！ クレジット +${gain}（計 ${state.player.credits}）`);
   state.enemy = undefined;
+  state.onWinEvent?.();
 }
 
 export function makeInitialState(seed: number, onToast: (msg:string)=>void): GameState {

@@ -34,3 +34,18 @@ html, body, #app { height: 100%; margin: 0; background: var(--bg); color: var(--
 
 #toasts { position: fixed; right: 12px; top: 12px; display: flex; flex-direction: column; gap: 8px; }
 .toast { background: #0f1a2aa8; border: 1px solid #21324a; padding: 8px 10px; color: var(--fg); box-shadow: 0 0 12px rgba(0,234,255,0.1); }
+
+/* Tutorial overlay */
+#tutorial-overlay { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; backdrop-filter: blur(2px); }
+#tutorial-overlay .panel { width: min(720px, 92vw); max-height: 80vh; overflow: hidden; background: #0b0f14; border: 1px solid #21324a; box-shadow: 0 12px 40px rgba(0,0,0,0.6); display: grid; grid-template-rows: auto 1fr auto; }
+#tutorial-overlay .head, #tutorial-overlay .foot { display: flex; gap: 8px; align-items: center; padding: 8px; background: #0d1220aa; border-bottom: 1px solid #152030; }
+#tutorial-overlay .foot { border-top: 1px solid #152030; border-bottom: none; }
+#tutorial-overlay .spacer { flex: 1; }
+#tutorial-overlay #tut-body { padding: 12px; overflow: auto; }
+#tutorial-overlay .title { font-weight: bold; margin-bottom: 6px; color: var(--accent-1); }
+#tutorial-overlay .desc { opacity: 0.9; margin-bottom: 10px; }
+#tutorial-overlay .ex { background: #0d1220; border: 1px dashed #21324a; padding: 8px; display: inline-flex; align-items: center; gap: 8px; }
+#tutorial-overlay code { color: var(--accent-3); }
+#tutorial-overlay .list { margin-top: 12px; padding-left: 18px; }
+#tutorial-overlay .list li.active { color: var(--accent-1); }
+#tutorial-overlay .list li.done { color: #7aa2c6; text-decoration: line-through; }
