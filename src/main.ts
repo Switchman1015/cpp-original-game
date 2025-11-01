@@ -5,7 +5,7 @@ type Daily = { seed: number; modifiers?: string[] };
 
 async function loadDaily(): Promise<Daily> {
   try {
-    const res = await fetch("/daily.json");
+    const res = await fetch("daily.json");
     if (!res.ok) throw new Error("daily not found");
     return await res.json();
   } catch {
@@ -84,4 +84,3 @@ loadDaily().then((daily) => {
     termApi.write(s);
   }
 });
-

@@ -1,4 +1,5 @@
 import { Terminal } from "xterm";
+import "xterm/css/xterm.css";
 import type { GameState } from "./game";
 import { Commands } from "./game";
 
@@ -84,4 +85,3 @@ function splitArgs(s: string): string[] {
   if (cur) out.push(cur);
   return out;
 }
-
