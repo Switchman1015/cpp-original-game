@@ -55,10 +55,10 @@ export function initTerminal(el: HTMLElement, state: GameState): TermApi {
   function handleLine(line: string) {
     if (!line) return;
     if (line === "help") {
-      write("commands: map, connect <node>, route --policy profit, breach, scan, inject --payload <leak|burn> --stack N, firewall [up], lag, overclock, cool --power N, jobs, kill %id, credits, help");
+      write("利用可能: map / connect <ノードID> / route --policy profit / breach / scan / inject --payload <leak|burn> --stack N / firewall [up] / lag / overclock / cool --power N / jobs / kill %ID / credits / help");
       return;
     }
-    if (line === "credits") { write(`Credits: ${state.player.credits}`); return; }
+    if (line === "credits") { write(`クレジット: ${state.player.credits}`); return; }
     // support ';' sequences and trailing '&' for bg
     const seq = line.split(";").map(s => s.trim()).filter(Boolean);
     for (const segment of seq) {
@@ -68,7 +68,7 @@ export function initTerminal(el: HTMLElement, state: GameState): TermApi {
       const cmd = parts[0];
       const args = parts.slice(1);
       const spec = Commands[cmd];
-      if (!spec) { write(`unknown: ${cmd}`); continue; }
+      if (!spec) { write(`不明なコマンド: ${cmd}`); continue; }
       try {
         if (spec.castMs === 0 && spec.gcdMs === 0) {
           spec.run({ state, args, raw: rawSeg, write });

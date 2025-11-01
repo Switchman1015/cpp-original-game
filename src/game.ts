@@ -54,11 +54,11 @@ export function fmtMs(ms: number) { return (ms/1000).toFixed(2) + "s"; }
 export function makeDemoMap(): Record<string, Node> {
   const nodes: Record<string, Node> = {};
   const add = (n: Node) => { nodes[n.id] = n; };
-  add({ id: "node-a", name: "Entry", kind: "normal", weakWindow: { open: 3000, period: 12000, len: 3000 }, security: { tier: 1 }, neighbors: ["node-b","node-c"] });
-  add({ id: "node-b", name: "Vault-α", kind: "vault", weakWindow: { open: 8000, period: 16000, len: 4000 }, security: { tier: 2 }, neighbors: ["node-a","node-d"] });
-  add({ id: "node-c", name: "Shop", kind: "shop", weakWindow: { open: 5000, period: 15000, len: 3500 }, security: { tier: 1 }, neighbors: ["node-a","node-d"] });
-  add({ id: "node-d", name: "Rest", kind: "rest", weakWindow: { open: 6000, period: 18000, len: 4000 }, security: { tier: 1 }, neighbors: ["node-b","node-c","node-e"] });
-  add({ id: "node-e", name: "Elite", kind: "elite", weakWindow: { open: 9000, period: 22000, len: 5000 }, security: { tier: 3 }, neighbors: ["node-d"] });
+  add({ id: "node-a", name: "エントリ", kind: "normal", weakWindow: { open: 3000, period: 12000, len: 3000 }, security: { tier: 1 }, neighbors: ["node-b","node-c"] });
+  add({ id: "node-b", name: "金庫-α", kind: "vault", weakWindow: { open: 8000, period: 16000, len: 4000 }, security: { tier: 2 }, neighbors: ["node-a","node-d"] });
+  add({ id: "node-c", name: "ショップ", kind: "shop", weakWindow: { open: 5000, period: 15000, len: 3500 }, security: { tier: 1 }, neighbors: ["node-a","node-d"] });
+  add({ id: "node-d", name: "休息", kind: "rest", weakWindow: { open: 6000, period: 18000, len: 4000 }, security: { tier: 1 }, neighbors: ["node-b","node-c","node-e"] });
+  add({ id: "node-e", name: "エリート", kind: "elite", weakWindow: { open: 9000, period: 22000, len: 5000 }, security: { tier: 3 }, neighbors: ["node-d"] });
   return nodes;
 }
 
@@ -124,17 +124,17 @@ export function scheduleCast(ctx: CommandCtx, spec: CommandSpec, opts?: { bg?: b
   const castMs = opts?.bg ? spec.castMs * 3 : spec.castMs;
   const gcd = opts?.bg ? 0 : spec.gcdMs;
   s.player.gcdUntil = now + gcd;
-  s.logs.push(`cast ${spec.id} (${(castMs/1000).toFixed(2)}s${opts?.bg?" bg":""})`);
+  s.logs.push(`詠唱 ${spec.id} ${(castMs/1000).toFixed(2)}s${opts?.bg?"（バックグラウンド）":""}`);
   if (opts?.bg) {
     const id = s.nextJobId++;
     const jobKey = `job:${id}`;
     s.jobs[id] = { id, line: ctx.raw, startAt: now, endsAt: now + castMs, bg: true };
     s.scheduler.schedule(castMs, jobKey, () => {
       if (s.jobs[id]?.canceled) return;
-      try { spec.run(ctx); ctx.write(`[job %${id}] done: ${spec.id}`); }
+      try { spec.run(ctx); ctx.write(`[job %${id}] 完了: ${spec.id}`); }
       finally { delete s.jobs[id]; }
     });
-    ctx.write(`[job %${id}] started: ${spec.id} ${(castMs/1000).toFixed(2)}s`);
+    ctx.write(`[job %${id}] 開始: ${spec.id} ${(castMs/1000).toFixed(2)}s`);
   } else {
     s.scheduler.schedule(castMs, `cast:${spec.id}:${now}`, () => {
       try { spec.run(ctx); } finally { /* cooldown stub */ }
@@ -153,7 +153,7 @@ export function registerCoreCommands(write: (s:string)=>void) {
     if (!id || !state.map.nodes[id]) { write("ノードIDを指定してください（例: connect node-b）"); return; }
     if (!state.map.nodes[state.map.current].neighbors.includes(id)) { write("隣接していません"); return; }
     state.map.current = id;
-    write(`connected → ${state.map.nodes[id].name}`);
+    write(`接続先 → ${state.map.nodes[id].name}`);
   }});
   add({ id: "route", castMs: 0, gcdMs: 0, cdMs: 0, run: ({state, write, args}) => {
     const policy = args[0] === "--policy" ? (args[1] || "profit") : "profit";
@@ -166,15 +166,15 @@ export function registerCoreCommands(write: (s:string)=>void) {
       const r = t % n.weakWindow.period;
       const wait = r <= n.weakWindow.open ? (n.weakWindow.open - r) : (n.weakWindow.period - r + n.weakWindow.open);
       const score = (policy==="profit"? (isVault*2 - wait/10000) : (-wait/10000));
-      if (score > bestScore) { bestScore = score; best = n; msg = `${n.name} (待機 ${(wait/1000).toFixed(1)}s)`; }
+      if (score > bestScore) { bestScore = score; best = n; msg = `${n.name}（待機 ${(wait/1000).toFixed(1)}s）`; }
     }
-    write(`route[${policy}] → ${msg}`);
+    write(`推奨ルート[${policy}] → ${msg}`);
   }});
   add({ id: "breach", castMs: 0, gcdMs: 600, cdMs: 2000, run: ({state, write}) => {
     if (state.enemy) { write("既に交戦中"); return; }
     const hp = 18 + Math.floor(state.rng()*8);
     state.enemy = { id: "ice", name: "ICE", hp, castEndsAt: 0 };
-    write(`breach → ${state.map.nodes[state.map.current].name}（敵HP:${hp}）`);
+    write(`侵入 → ${state.map.nodes[state.map.current].name}（敵HP:${hp}）`);
   }});
   add({ id: "scan", castMs: 400, gcdMs: 600, cdMs: 0, cost: { cpu: 1, net: 1 }, run: ({state, write}) => {
     state.logs.push("敵の脆弱性をスキャン"); write("scanned: 攻撃が強化される窓が開く（短時間）");
@@ -186,7 +186,7 @@ export function registerCoreCommands(write: (s:string)=>void) {
     const dmg = payload === "burn" ? 6 + stacks*2 : 4 + stacks;
     if (!state.enemy) { write("敵がいません"); return; }
     state.enemy.hp -= dmg;
-    write(`inject ${payload} x${stacks} → ${dmg}dmg (敵HP:${Math.max(0,state.enemy.hp)})`);
+    write(`注入 ${payload} x${stacks} → ${dmg}ダメージ（敵HP:${Math.max(0,state.enemy.hp)}）`);
     if (state.enemy.hp <= 0) onWin(state, write);
   }});
   add({ id: "firewall", castMs: 300, gcdMs: 600, cdMs: 1500, cost: { power: 2 }, run: ({state, write, args}) => {
@@ -204,7 +204,7 @@ export function registerCoreCommands(write: (s:string)=>void) {
   }});
   add({ id: "cool", castMs: 0, gcdMs: 300, cdMs: 2000, cost: { power: 3, heat: -8 }, run: ({state, write}) => {
     state.resources.heat = Math.max(0, state.resources.heat - 8);
-    write("冷却: HEAT -8");
+    write("冷却: 熱 -8");
   }});
   add({ id: "jobs", castMs: 0, gcdMs: 0, cdMs: 0, run: ({state, write}) => {
     const ids = Object.keys(state.jobs).map(i => Number(i)).sort((a,b)=>a-b);
@@ -217,11 +217,11 @@ export function registerCoreCommands(write: (s:string)=>void) {
     }
   }});
   add({ id: "kill", castMs: 0, gcdMs: 0, cdMs: 0, run: ({state, write, args}) => {
-    const token = args[0] || ""; if (!token.startsWith("%")) { write("kill %<id>"); return; }
+    const token = args[0] || ""; if (!token.startsWith("%")) { write("使い方: kill %<ID>"); return; }
     const id = Number(token.slice(1));
-    if (!state.jobs[id]) { write(`no such job: %${id}`); return; }
+    if (!state.jobs[id]) { write(`該当ジョブなし: %${id}`); return; }
     state.jobs[id].canceled = true; delete state.jobs[id];
-    write(`killed %${id}`);
+    write(`ジョブ終了: %${id}`);
   }});
 }
 
@@ -234,7 +234,7 @@ export function onWin(state: GameState, write: (s:string)=>void) {
     state.onToast(`${node.name}: 急襲ボーナス！ Credits x1.5`);
   }
   state.player.credits += gain;
-  write(`Victory! Credits +${gain}（計 ${state.player.credits}）`);
+  write(`勝利！ クレジット +${gain}（計 ${state.player.credits}）`);
   state.enemy = undefined;
 }
 

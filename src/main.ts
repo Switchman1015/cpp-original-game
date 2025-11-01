@@ -35,8 +35,8 @@ loadDaily().then((daily) => {
   registerCoreCommands((s) => logLine(s));
 
   const termApi = initTerminal(document.getElementById("terminal")!, state);
-  termApi.write("Rogue Terminal: Cloudrunner — Heist mode\r\n");
-  termApi.write("type 'help' to list commands.\r\n");
+  termApi.write("Rogue Terminal: Cloudrunner — 強奪モード（稼ぎ優先）\r\n");
+  termApi.write("コマンド一覧は 'help' を入力\r\n");
 
   const mapEl = document.getElementById("map")!;
   const creditsEl = document.getElementById("credits-val")!;
@@ -69,11 +69,11 @@ loadDaily().then((daily) => {
       const t = state.scheduler.time();
       const r = (t % n.weakWindow.period);
       if (Math.abs(r - n.weakWindow.open) < 5) {
-        toast(`${n.name}: 弱点窓 open`);
+        toast(`${n.name}: 弱点ウィンドウ開放`);
       }
       if (n.kind === "vault") {
         const surgeOpen = (n.weakWindow.open + 1000) % n.weakWindow.period; // 適当な位相ずらし
-        if (Math.abs(r - surgeOpen) < 5) toast(`${n.name}: 急襲チャンス（Credits↑）`);
+        if (Math.abs(r - surgeOpen) < 5) toast(`${n.name}: 急襲チャンス（クレジット増加）`);
       }
     }
 
