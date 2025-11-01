@@ -1,7 +1,7 @@
 import { Terminal } from "xterm";
 import "xterm/css/xterm.css";
 import type { GameState } from "./game";
-import { Commands } from "./game";
+import { Commands, scheduleCast } from "./game";
 
 export type TermApi = {
   write: (s: string) => void;
@@ -55,19 +55,28 @@ export function initTerminal(el: HTMLElement, state: GameState): TermApi {
   function handleLine(line: string) {
     if (!line) return;
     if (line === "help") {
-      write("commands: map, connect <node>, breach, scan, inject --payload <leak|burn> --stack N, firewall [up], lag, overclock, cool --power N, credits, help");
+      write("commands: map, connect <node>, route --policy profit, breach, scan, inject --payload <leak|burn> --stack N, firewall [up], lag, overclock, cool --power N, jobs, kill %id, credits, help");
       return;
     }
     if (line === "credits") { write(`Credits: ${state.player.credits}`); return; }
-    const parts = splitArgs(line);
-    const cmd = parts[0];
-    const args = parts.slice(1);
-    const spec = Commands[cmd];
-    if (!spec) { write(`unknown: ${cmd}`); return; }
-    try {
-      // schedule cast (delegated in game)
-      spec.run({ state, args, raw: line, write });
-    } catch (e:any) { write(String(e?.message||e)); }
+    // support ';' sequences and trailing '&' for bg
+    const seq = line.split(";").map(s => s.trim()).filter(Boolean);
+    for (const segment of seq) {
+      const bg = segment.endsWith("&");
+      const rawSeg = bg ? segment.slice(0, -1).trim() : segment;
+      const parts = splitArgs(rawSeg);
+      const cmd = parts[0];
+      const args = parts.slice(1);
+      const spec = Commands[cmd];
+      if (!spec) { write(`unknown: ${cmd}`); continue; }
+      try {
+        if (spec.castMs === 0 && spec.gcdMs === 0) {
+          spec.run({ state, args, raw: rawSeg, write });
+        } else {
+          scheduleCast({ state, args, raw: rawSeg, write }, spec, { bg });
+        }
+      } catch (e:any) { write(String(e?.message||e)); }
+    }
   }
 
   return { write, focus: () => term.focus() };

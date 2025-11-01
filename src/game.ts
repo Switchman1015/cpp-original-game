@@ -35,6 +35,8 @@ export type GameState = {
   enemy?: Enemy;
   logs: string[];
   onToast: (msg: string) => void;
+  jobs: Record<number, { id: number; line: string; endsAt: number; startAt: number; bg: boolean; canceled?: boolean }>;
+  nextJobId: number;
 };
 
 export function createRng(seed: number) {
@@ -105,7 +107,7 @@ function consume(state: GameState, need: Partial<Resources>): boolean {
   return true;
 }
 
-function scheduleCast(ctx: CommandCtx, spec: CommandSpec) {
+export function scheduleCast(ctx: CommandCtx, spec: CommandSpec, opts?: { bg?: boolean }) {
   const s = ctx.state;
   const now = s.scheduler.time();
   if (now < s.player.gcdUntil) {
@@ -119,11 +121,25 @@ function scheduleCast(ctx: CommandCtx, spec: CommandSpec) {
   if (spec.cost && !consume(s, spec.cost)) {
     ctx.write("リソース不足"); return;
   }
-  s.player.gcdUntil = now + spec.gcdMs;
-  s.logs.push(`cast ${spec.id} (${(spec.castMs/1000).toFixed(2)}s)`);
-  s.scheduler.schedule(spec.castMs, `cast:${spec.id}:${now}`, () => {
-    try { spec.run(ctx); } finally { /* cooldown would start here if tracked */ }
-  });
+  const castMs = opts?.bg ? spec.castMs * 3 : spec.castMs;
+  const gcd = opts?.bg ? 0 : spec.gcdMs;
+  s.player.gcdUntil = now + gcd;
+  s.logs.push(`cast ${spec.id} (${(castMs/1000).toFixed(2)}s${opts?.bg?" bg":""})`);
+  if (opts?.bg) {
+    const id = s.nextJobId++;
+    const jobKey = `job:${id}`;
+    s.jobs[id] = { id, line: ctx.raw, startAt: now, endsAt: now + castMs, bg: true };
+    s.scheduler.schedule(castMs, jobKey, () => {
+      if (s.jobs[id]?.canceled) return;
+      try { spec.run(ctx); ctx.write(`[job %${id}] done: ${spec.id}`); }
+      finally { delete s.jobs[id]; }
+    });
+    ctx.write(`[job %${id}] started: ${spec.id} ${(castMs/1000).toFixed(2)}s`);
+  } else {
+    s.scheduler.schedule(castMs, `cast:${spec.id}:${now}`, () => {
+      try { spec.run(ctx); } finally { /* cooldown stub */ }
+    });
+  }
 }
 
 export function registerCoreCommands(write: (s:string)=>void) {
@@ -138,6 +154,21 @@ export function registerCoreCommands(write: (s:string)=>void) {
     if (!state.map.nodes[state.map.current].neighbors.includes(id)) { write("隣接していません"); return; }
     state.map.current = id;
     write(`connected → ${state.map.nodes[id].name}`);
+  }});
+  add({ id: "route", castMs: 0, gcdMs: 0, cdMs: 0, run: ({state, write, args}) => {
+    const policy = args[0] === "--policy" ? (args[1] || "profit") : "profit";
+    const here = state.map.nodes[state.map.current];
+    const choices = here.neighbors.map(id => state.map.nodes[id]);
+    let best = choices[0]; let bestScore = -Infinity; let msg = "";
+    for (const n of choices) {
+      const isVault = n.kind === "vault" ? 1 : 0;
+      const t = state.scheduler.time();
+      const r = t % n.weakWindow.period;
+      const wait = r <= n.weakWindow.open ? (n.weakWindow.open - r) : (n.weakWindow.period - r + n.weakWindow.open);
+      const score = (policy==="profit"? (isVault*2 - wait/10000) : (-wait/10000));
+      if (score > bestScore) { bestScore = score; best = n; msg = `${n.name} (待機 ${(wait/1000).toFixed(1)}s)`; }
+    }
+    write(`route[${policy}] → ${msg}`);
   }});
   add({ id: "breach", castMs: 0, gcdMs: 600, cdMs: 2000, run: ({state, write}) => {
     if (state.enemy) { write("既に交戦中"); return; }
@@ -175,10 +206,33 @@ export function registerCoreCommands(write: (s:string)=>void) {
     state.resources.heat = Math.max(0, state.resources.heat - 8);
     write("冷却: HEAT -8");
   }});
+  add({ id: "jobs", castMs: 0, gcdMs: 0, cdMs: 0, run: ({state, write}) => {
+    const ids = Object.keys(state.jobs).map(i => Number(i)).sort((a,b)=>a-b);
+    if (!ids.length) { write("(no jobs)"); return; }
+    for (const id of ids) {
+      const j = state.jobs[id];
+      const t = state.scheduler.time();
+      const pct = Math.max(0, Math.min(100, ((t - j.startAt) / (j.endsAt - j.startAt)) * 100));
+      write(`%${id}\t${j.line}\t${pct.toFixed(0)}%`);
+    }
+  }});
+  add({ id: "kill", castMs: 0, gcdMs: 0, cdMs: 0, run: ({state, write, args}) => {
+    const token = args[0] || ""; if (!token.startsWith("%")) { write("kill %<id>"); return; }
+    const id = Number(token.slice(1));
+    if (!state.jobs[id]) { write(`no such job: %${id}`); return; }
+    state.jobs[id].canceled = true; delete state.jobs[id];
+    write(`killed %${id}`);
+  }});
 }
 
 export function onWin(state: GameState, write: (s:string)=>void) {
-  const gain = 25 + Math.floor(state.rng()*25);
+  let gain = 25 + Math.floor(state.rng()*25);
+  // Vault急襲ボーナス: vaultの弱点窓中は倍率アップ
+  const node = state.map.nodes[state.map.current];
+  if (node.kind === "vault" && isWeakOpen(state, node)) {
+    gain = Math.floor(gain * 1.5);
+    state.onToast(`${node.name}: 急襲ボーナス！ Credits x1.5`);
+  }
   state.player.credits += gain;
   write(`Victory! Credits +${gain}（計 ${state.player.credits}）`);
   state.enemy = undefined;
@@ -197,6 +251,8 @@ export function makeInitialState(seed: number, onToast: (msg:string)=>void): Gam
     map: { nodes, start, current: start },
     logs: [],
     onToast,
+    jobs: {},
+    nextJobId: 1,
   };
   return state;
 }

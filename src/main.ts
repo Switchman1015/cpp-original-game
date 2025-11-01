@@ -62,7 +62,7 @@ loadDaily().then((daily) => {
     setBar("trace-bar", state.player.trace);
     creditsEl.textContent = String(state.player.credits);
 
-    // events (weak windows toasts)
+    // events (weak windows toasts + periodic vault surge heads-up)
     const m = state.map.nodes;
     for (const id of Object.keys(m)) {
       const n = m[id];
@@ -70,6 +70,10 @@ loadDaily().then((daily) => {
       const r = (t % n.weakWindow.period);
       if (Math.abs(r - n.weakWindow.open) < 5) {
         toast(`${n.name}: 弱点窓 open`);
+      }
+      if (n.kind === "vault") {
+        const surgeOpen = (n.weakWindow.open + 1000) % n.weakWindow.period; // 適当な位相ずらし
+        if (Math.abs(r - surgeOpen) < 5) toast(`${n.name}: 急襲チャンス（Credits↑）`);
       }
     }
 
