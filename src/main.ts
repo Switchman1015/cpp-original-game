@@ -1,5 +1,6 @@
 import { initTerminal } from "./terminal";
-import { drawAsciiMap, makeInitialState, registerCoreCommands } from "./game";
+import { makeInitialState, registerCoreCommands } from "./game";
+import { drawMap } from "./map";
 
 type Daily = { seed: number; modifiers?: string[] };
 
@@ -38,7 +39,7 @@ loadDaily().then((daily) => {
   termApi.write("Rogue Terminal: Cloudrunner — 強奪モード（稼ぎ優先）\r\n");
   termApi.write("コマンド一覧は 'help' を入力\r\n");
 
-  const mapEl = document.getElementById("map")!;
+  const canvas = document.getElementById("map-canvas") as HTMLCanvasElement;
   const creditsEl = document.getElementById("credits-val")!;
 
   // simple RT loop
@@ -77,8 +78,8 @@ loadDaily().then((daily) => {
       }
     }
 
-    // map draw
-    mapEl.textContent = drawAsciiMap(state);
+    // map draw (Canvas)
+    drawMap(canvas, state);
     state.scheduler.step(dt);
     requestAnimationFrame(frame);
   }
